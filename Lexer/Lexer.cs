@@ -4,162 +4,71 @@ using System.Text;
 using System.Text.RegularExpressions;
 public class Lexer
 {
-    public readonly string code; 
+    public string Code;
     public List<Token> tokens = new List<Token>();
-    public int start = 0;
-    public int current = 0;
-    public int line = 1;
-    public int column = 1;
+    public static List<Regex> TokenRegex = new List<Regex>
+    {
+        new Regex(@"\$"),
+        new Regex(@"\r|\n"),
+        new Regex(@""".*"""), 
+        new Regex(@"(\*\*|&&|\|\||==|>=|<=|!=|>|<|\+|-|\*|/|%)"),
+        new Regex(@"←|\(|\)|,|\[|\]"),
+        new Regex(@"[-]?(\d+\.\d+|\.\d+|\d+)"),
+        new Regex(@"[a-zA-Z][a-zA-Z0-9_]*"),
+        new Regex(@"\s+")       
+    };
+    public Dictionary<Regex, Token.TokenType> tokenPatterns = new Dictionary<Regex, Token.TokenType>
+    {
+        {TokenRegex[0], Token.TokenType.EOFToken},
+        {TokenRegex[1], Token.TokenType.NewLineToken},
+        {TokenRegex[2], Token.TokenType.StringToken},
+        {TokenRegex[3], Token.TokenType.OperatorToken},
+        {TokenRegex[4], Token.TokenType.SymbolToken},
+        {TokenRegex[5], Token.TokenType.NumberToken},
+        {TokenRegex[6], Token.TokenType.IdentifierToken},
+        {TokenRegex[7], Token.TokenType.WhiteSpaceToken}
+        
+    };
     public Lexer(string code)
     {
-        this.code = code + '$';
+        Code = code + "$"; // Añadir EOF 
         Tokenize();
     }
-    public List<Token> Tokenize()
+    public void Tokenize()
     {
-        while (!IsAtEnd())
+        int initialPosition = 0;
+        while (initialPosition < Code.Length)
         {
-            start = current;
-            ScanToken();
-        }
-        tokens.Add(new Token(Token.TokenType.EOFToken, "$", line, column));
-        return tokens;
-    }    
-    private bool IsAtEnd()
-    {
-        if(code[current] == '$') return true;
-        else return false;
-    }
-    private char Advance() 
-    {
-        var currentChar = code[current];
-        current = Math.Min(current + 1, code.Length);
-        return currentChar;
-    }
-    private void AddToken(Token.TokenType type)
-    {
-        string text = code.Substring(start, current - start);
-        tokens.Add(new Token(type, text, line, column));
-    }
-    private bool Match(char expected)
-    {
-        if (IsAtEnd()) return false;
-        if (code[current] != expected) return false;
-        
-        current++;
-        return true;
-    }
-    private void ScanToken()
-    {
-        char c = Advance();
-        
-        switch (c)
-        {
-            // Caracteres de un solo símbolo
-            case '(': AddToken(Token.TokenType.SymbolToken); break;
-            case ')': AddToken(Token.TokenType.SymbolToken); break;
-            case ',': AddToken(Token.TokenType.SymbolToken); break;
-            case '[': AddToken(Token.TokenType.SymbolToken); break;
-            case ']': AddToken(Token.TokenType.SymbolToken); break;
-            case '←': AddToken(Token.TokenType.SymbolToken); break;
-            
-            // Operadores
-            case '+': AddToken(Token.TokenType.OperatorToken); break;
-            case '/': AddToken(Token.TokenType.OperatorToken); break;
-            case '%': AddToken(Token.TokenType.OperatorToken); break;
-            case '&': if (Match('&')) AddToken(Token.TokenType.OperatorToken); break;
-            case '|': if (Match('|')) AddToken(Token.TokenType.OperatorToken); break;
-            case '=': if (Match('=')) AddToken(Token.TokenType.OperatorToken); break;
-            case '-': if (Match('>')) AddToken(Token.TokenType.OperatorToken); 
-                else AddToken(Token.TokenType.OperatorToken); break;
-            case '*': if (Match('*')) AddToken (Token.TokenType.OperatorToken);
-                else AddToken(Token.TokenType.OperatorToken); break;
-            case '>': if (Match('=')) AddToken(Token.TokenType.OperatorToken);
-                else AddToken (Token.TokenType.OperatorToken); break;
-            case '<': if (Match('=')) AddToken(Token.TokenType.OperatorToken);
-                else AddToken (Token.TokenType.OperatorToken); break;
-            
-            // Espacios en blanco
-            case ' ':
-            case '\r':
-            case '\t':
-                // Ignorar
-                break;
-                
-            case '\n':
-                AddToken(Token.TokenType.NewLineToken);
-                line++;
-                column = 1;
-                break;
-                
-            // Literales de cadena
-            case '"': String(); break;
-                
-            // Números
-            default:
-                if (IsDigit(c))
+            int maxMatch = 0;
+            Token.TokenType selectedType = Token.TokenType.EOFToken;
+            string matchedLexeme = "";
+            bool thereWasAMatch = false;
+            for (int i = 0; i < TokenRegex.Count; i++)
+            {
+                Match match = TokenRegex[i].Match(Code, initialPosition);
+                if (match.Success && match.Index == initialPosition && match.Length > maxMatch)
                 {
-                    Number();
+                    maxMatch = match.Length;
+                    selectedType = tokenPatterns[TokenRegex[i]];
+                    matchedLexeme = match.Value;
+                    thereWasAMatch = true;
                 }
-                else if (IsLetter(c))
+                if (selectedType == Token.TokenType.IdentifierToken)
                 {
-                    Identifier();
+                    if (matchedLexeme == "GoTo")
+                    {
+                        selectedType = Token.TokenType.GoToToken;
+                    }
+                    else if (Token.Functions.Contains(matchedLexeme))
+                    {
+                        selectedType = Token.TokenType.FunctionToken;
+                    }
                 }
-                else
-                {
-                    throw new Exception("Invalid token");
-                }
-                break;
+            }
+            if (thereWasAMatch == false) throw new Exception("Error of lexing ");
+            if (selectedType != Token.TokenType.WhiteSpaceToken && selectedType != Token.TokenType.NewLineToken)
+                tokens.Add(new Token(selectedType, matchedLexeme));
+            initialPosition += maxMatch;
         }
     }
-    private void String()
-    {
-        while (code[current + 1] != '"' && !IsAtEnd())
-        {
-            if (code[current + 1] == '\n') line++;
-            Advance();
-        }
-        
-        /*if (IsAtEnd())
-        {
-            Error(line, "String sin terminar.");
-            return;
-        }*/
-        
-        // Cerrar comillas
-        Advance();
-        
-        // Extraer el valor del string (sin las comillas)
-        string value = code.Substring(start + 1, current - start - 2);
-        AddToken(Token.TokenType.StringToken);
-    }
-
-    private void Number()
-    {
-        while (IsDigit(code[current + 1])) Advance();
-        
-        // Parte decimal
-        if (code[current + 1] == '.' && IsDigit(code[current + 2]))
-        {
-            // Consumir el punto
-            Advance();
-            
-            while (IsDigit(code[current + 1])) Advance();
-        }
-        AddToken(Token.TokenType.NumberToken);
-    }
-    private void Identifier()
-    {
-        while (IsLetterOrDigit(code[current + 1])) Advance();
-        string text = code.Substring(start, current - start);
-        // Verificar si es palabra clave
-        if (Token.Functions.TryGetValue(text, out Token.TokenType type)) {
-            AddToken(type);
-        } else {
-            AddToken(Token.TokenType.IdentifierToken);
-        }
-    }
-    public bool IsDigit(char c) => c >= '0' && c <= '9';
-    public bool IsLetter(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-    public bool IsLetterOrDigit(char c) => IsLetter(c) || IsDigit(c);
 }

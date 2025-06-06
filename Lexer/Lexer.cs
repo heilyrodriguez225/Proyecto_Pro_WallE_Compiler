@@ -66,7 +66,7 @@ public class Lexer
                 }
             }
             if (thereWasAMatch == false) throw new Exception("Error of lexing ");
-            if (selectedType != Token.TokenType.WhiteSpaceToken && selectedType != Token.TokenType.NewLineToken)
+            if (selectedType != Token.TokenType.WhiteSpaceToken )
                 tokens.Add(new Token(selectedType, matchedLexeme));
             initialPosition += maxMatch;
         }

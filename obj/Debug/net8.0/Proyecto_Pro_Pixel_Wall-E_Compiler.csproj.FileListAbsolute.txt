@@ -1,0 +1,15 @@
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/bin/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/bin/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.deps.json
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/bin/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.runtimeconfig.json
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/bin/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.dll
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/bin/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.pdb
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.GeneratedMSBuildEditorConfig.editorconfig
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.AssemblyInfoInputs.cache
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.AssemblyInfo.cs
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.csproj.CoreCompileInputs.cache
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.sourcelink.json
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.dll
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/refint/Proyecto_Pro_Pixel_Wall-E_Compiler.dll
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.pdb
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/Proyecto_Pro_Pixel_Wall-E_Compiler.genruntimeconfig.cache
+/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/Debug/net8.0/ref/Proyecto_Pro_Pixel_Wall-E_Compiler.dll

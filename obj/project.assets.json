@@ -8,24 +8,31 @@
     "net8.0": []
   },
   "packageFolders": {
-    "/home/heily/.nuget/packages/": {}
+    "C:\\Users\\heily\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/Proyecto_Pro_Pixel_Wall-E_Compiler.csproj",
+      "projectUniqueName": "B:\\Nueva carpeta\\Proyecto_Pro_Wally_Compiler\\Proyecto_Pro_Pixel_Wall-E_Compiler.csproj",
       "projectName": "Proyecto_Pro_Pixel_Wall-E_Compiler",
-      "projectPath": "/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/Proyecto_Pro_Pixel_Wall-E_Compiler.csproj",
-      "packagesPath": "/home/heily/.nuget/packages/",
-      "outputPath": "/home/heily/Proyecto_Pro_Pixel_Wall-E_Compiler/obj/",
+      "projectPath": "B:\\Nueva carpeta\\Proyecto_Pro_Wally_Compiler\\Proyecto_Pro_Pixel_Wall-E_Compiler.csproj",
+      "packagesPath": "C:\\Users\\heily\\.nuget\\packages\\",
+      "outputPath": "B:\\Nueva carpeta\\Proyecto_Pro_Wally_Compiler\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/home/heily/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\heily\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -38,7 +45,13 @@
         "warnAsError": [
           "NU1605"
         ]
-      }
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0": {
@@ -59,7 +72,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.116/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

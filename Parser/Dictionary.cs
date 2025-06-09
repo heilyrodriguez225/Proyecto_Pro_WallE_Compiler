@@ -7,7 +7,6 @@ public static class Functions
     {
         "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent"
     };
-
     public static Dictionary<string, Func<List<object>, Dictionary<string, object>, object>> FunctionMap =
         new Dictionary<string, Func<List<object>, Dictionary<string, object>, object>>
     {

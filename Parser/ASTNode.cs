@@ -51,7 +51,6 @@ public class AssignmentNode : IASTNode
     public object Execute(Dictionary<string, object> scope)
     {
         scope[Variable] = Expression.Execute(scope);
-        bool updated = ScopeUtils.UpdateVariableInHierarchy(scope, Variable, value);
         return null;
     }
 }

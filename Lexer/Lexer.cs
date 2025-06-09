@@ -9,21 +9,21 @@ public class Lexer
     public static List<Regex> TokenRegex = new List<Regex>
     {
         new Regex(@"\$"),
-        new Regex(@"\r|\n"),
+        new Regex(@"\n"),
         new Regex(@""".*"""), 
+        new Regex(@"<-|\(|\)|,|\[|\]"),
         new Regex(@"(\*\*|&&|\|\||==|>=|<=|!=|>|<|\+|-|\*|/|%)"),
-        new Regex(@"←|\(|\)|,|\[|\]"),
         new Regex(@"[-]?(\d+\.\d+|\.\d+|\d+)"),
         new Regex(@"[a-zA-Z][a-zA-Z0-9_]*"),
-        new Regex(@"\s+")       
+        new Regex(@"\s")       
     };
     public Dictionary<Regex, Token.TokenType> tokenPatterns = new Dictionary<Regex, Token.TokenType>
     {
         {TokenRegex[0], Token.TokenType.EOFToken},
         {TokenRegex[1], Token.TokenType.NewLineToken},
         {TokenRegex[2], Token.TokenType.StringToken},
-        {TokenRegex[3], Token.TokenType.OperatorToken},
-        {TokenRegex[4], Token.TokenType.SymbolToken},
+        {TokenRegex[3], Token.TokenType.SymbolToken},
+        {TokenRegex[4], Token.TokenType.OperatorToken},
         {TokenRegex[5], Token.TokenType.NumberToken},
         {TokenRegex[6], Token.TokenType.IdentifierToken},
         {TokenRegex[7], Token.TokenType.WhiteSpaceToken}
@@ -65,8 +65,8 @@ public class Lexer
                     }
                 }
             }
-            if (thereWasAMatch == false) throw new Exception("Error of lexing ");
-            if (selectedType != Token.TokenType.WhiteSpaceToken )
+            if (thereWasAMatch == false) throw new Exception("Error of lexing");
+            if (selectedType != Token.TokenType.WhiteSpaceToken)
                 tokens.Add(new Token(selectedType, matchedLexeme));
             initialPosition += maxMatch;
         }

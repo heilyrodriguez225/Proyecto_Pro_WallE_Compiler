@@ -13,18 +13,23 @@ public class Parser
         program.Statements.Add(ParseSpawn()); // Spawn obligatorio
         while (Tokens[current].Type != Token.TokenType.EOFToken)
         {
-            if (Match(Token.TokenType.FunctionToken))
+            if (Check(Token.TokenType.FunctionToken, Tokens[current].Lexeme))
                 program.Statements.Add(ParseInstruction());
-            else if (Match(Token.TokenType.IdentifierToken))
-                program.Statements.Add(ParseAssignment());
-            else if (Match(Token.TokenType.GoToToken))
+            else if (Check(Token.TokenType.IdentifierToken, Tokens[current].Lexeme))
+            {
+                if (Tokens[current + 1].Lexeme == "<-")
+                    program.Statements.Add(ParseAssignment());
+                else program.Statements.Add(ParseLabel());
+            }
+            else if (Check(Token.TokenType.GoToToken, Tokens[current].Lexeme))
                 program.Statements.Add(ParseGoTo());
+            else if (Match(Token.TokenType.NewLineToken, Tokens[current].Lexeme)) continue;
             else throw new Exception("Error of parsing");
         }
         return program;
     }
     //Verifica el token actual sin avanzar.
-    private bool Check(Token.TokenType type, string lexeme = null)
+    private bool Check(Token.TokenType type, string lexeme)
     {
         if (current == Tokens.Count) return false;
         bool typeMatches = Tokens[current].Type == type;
@@ -32,7 +37,7 @@ public class Parser
         return typeMatches && lexemeMatches;
     }
     //Verifica y avanza si hay coincidencia.
-    private bool Match(Token.TokenType type, string lexeme = null)
+    private bool Match(Token.TokenType type, string lexeme)
     {
         if (Check(type, lexeme))
         {
@@ -41,7 +46,7 @@ public class Parser
         }
         return false;
     }
-    private Token Consume(Token.TokenType expectedType, string expectedLexeme = null)
+    private Token Consume(Token.TokenType expectedType, string expectedLexeme)
     {
         // Verifica si el token actual coincide con el tipo y lexema esperados
         if (Check(expectedType, expectedLexeme))
@@ -49,29 +54,27 @@ public class Parser
             // Devuelve el token actual y avanza al siguiente
             return Tokens[current++];
         }
-        else throw new Exception("Error of parsing");
+        else throw new Exception("Error of Consume");
     }
-    // Spawn → "Spawn" "(" Numero "," Numero ")"
+    // Spawn(int x, int y)
     private SpawnNode ParseSpawn()
     {
         Consume(Token.TokenType.FunctionToken, "Spawn");
         Consume(Token.TokenType.SymbolToken, "(");
-        int x = int.Parse(Consume(Token.TokenType.NumberToken).Lexeme);
+        int x = int.Parse(Consume(Token.TokenType.NumberToken,Tokens[current].Lexeme).Lexeme);
         Consume(Token.TokenType.SymbolToken, ",");
-        int y = int.Parse(Consume(Token.TokenType.NumberToken).Lexeme);
+        int y = int.Parse(Consume(Token.TokenType.NumberToken,Tokens[current].Lexeme).Lexeme);
         Consume(Token.TokenType.SymbolToken, ")");
-        Consume(Token.TokenType.NewLineToken);
         return new SpawnNode(x, y);
     }
-
-    // Instrucción → Color | Size | DrawLine | ...
+    // Instrucción → Color | Size | DrawLine ...
     private IASTNode ParseInstruction()
     {
-        Token functionToken = Consume(Token.TokenType.FunctionToken);
+        Token functionToken = Consume(Token.TokenType.FunctionToken,Tokens[current].Lexeme);
         var functionName = functionToken.Lexeme;
         Consume(Token.TokenType.SymbolToken, "(");
         List<IASTNode> parameters = new List<IASTNode>();
-        while (!Check(Token.TokenType.SymbolToken, ")"))
+        while (!Check(Token.TokenType.SymbolToken, ")") || !Check(Token.TokenType.EOFToken, "$"))
         {
             IASTNode param = ParseExpression();
             parameters.Add(param);
@@ -80,22 +83,29 @@ public class Parser
         Consume(Token.TokenType.SymbolToken, ")");
         return new FunctionCallNode(functionName, parameters);
     }
-    private AssignmentNode ParseAssignment()
+    private IASTNode ParseAssignment()
     {
-        Token varToken = Consume(Token.TokenType.IdentifierToken);
+        Token varToken = Consume(Token.TokenType.IdentifierToken,Tokens[current].Lexeme);
         string variableName = varToken.Lexeme;
-        Consume(Token.TokenType.SymbolToken, "←");
-        IASTNode expression = ParseExpression();
-        Consume(Token.TokenType.NewLineToken);
+        Consume(Token.TokenType.SymbolToken, "<-");
+        IASTNode expression;
+        if (Tokens[current].Type == Token.TokenType.FunctionToken) expression = ParseInstruction();
+        else expression = ParseExpression();
         return new AssignmentNode(variableName, expression);
+    }
+    private IASTNode ParseLabel()
+    {
+        Token varToken = Consume(Token.TokenType.IdentifierToken, Tokens[current].Lexeme);
+        string literalName = varToken.Lexeme;
+        return new LiteralNode(literalName);
     }
     private IASTNode ParseExpression()
     {
-        if (Tokens[current + 1].Lexeme == "&&" || Tokens[current + 1].Lexeme == "||" || Tokens[current + 1].Lexeme == "==" || 
+        if (Tokens[current + 1].Lexeme == "&&" || Tokens[current + 1].Lexeme == "||" || Tokens[current + 1].Lexeme == "==" ||
         Tokens[current + 1].Lexeme == ">=" || Tokens[current + 1].Lexeme == "<=" || Tokens[current + 1].Lexeme == "<" || Tokens[current + 1].Lexeme == ">")
-        return ParseBoolExpression();
-    else
-        return ParseAlgebraicExpression();
+            return ParseBoolExpression();
+        else
+            return ParseAlgebraicExpression();
     }
     private IASTNode ParseBoolExpression()
     {
@@ -167,7 +177,7 @@ public class Parser
     }
     private IASTNode ParseFactor()
     {
-        if (Match(Token.TokenType.NumberToken))
+        if (Match(Token.TokenType.NumberToken,Tokens[current].Lexeme))
         {
             int value = int.Parse(Tokens[current - 1].Lexeme);
             return new LiteralNode(value);
@@ -178,7 +188,7 @@ public class Parser
             Consume(Token.TokenType.SymbolToken, ")");
             return expr;
         }
-        if (Match(Token.TokenType.IdentifierToken))
+        if (Match(Token.TokenType.IdentifierToken,Tokens[current].Lexeme))
         {
             string identifier = Tokens[current - 1].Lexeme;
             return new VariableNode(identifier);
@@ -192,9 +202,9 @@ public class Parser
     }
     private GoToNode ParseGoTo()
     {
-        Consume(Token.TokenType.GoToToken);
+        Consume(Token.TokenType.GoToToken,Tokens[current].Lexeme);
         Consume(Token.TokenType.SymbolToken, "[");
-        string label = Consume(Token.TokenType.IdentifierToken).Lexeme;
+        string label = Consume(Token.TokenType.IdentifierToken,Tokens[current].Lexeme).Lexeme;
         Consume(Token.TokenType.SymbolToken, "]");
         Consume(Token.TokenType.SymbolToken, "(");
         IASTNode condition = ParseBoolExpression();

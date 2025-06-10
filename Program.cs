@@ -7,8 +7,23 @@ public class Program
     {
         string testCode =
         @"Spawn(0, 0)
+        Color(Black)
+        n <- 5
+        k <- 3 + 3 * 10
+        n <- k * 2
         actual_x <- GetActualX()
-        DrawLine(1, 0, 1)";
+        i <- 0
+
+        loop1
+        DrawLine(1, 0, 1)
+        i <- i + 1
+        GoTo [loop_ends_here] (is_brush_color_blue == 1)
+        GoTo [loop1] (i < 10)
+
+        Color(""Blue"")
+        GoTo [loop1] (1 == 1)
+
+        loop_ends_here";
         // 1. Análisis léxico
         Lexer lexer = new Lexer(testCode);
         Console.WriteLine("Tokens generados:");
@@ -34,7 +49,7 @@ public class Program
     private static void PrintAST(IASTNode node, int indentLevel)
     {
         string indent = new string(' ', indentLevel * 2);
-        
+
         if (node is ProgramNode programNode)
         {
             Console.WriteLine($"{indent}Programa ({programNode.Statements.Count} instrucciones)");
@@ -76,6 +91,16 @@ public class Program
                 Console.WriteLine($"{indent}  Argument {i + 1}:");
                 PrintAST(functionNode.Arguments[i], indentLevel + 2);
             }
+        }
+        else if (node is GoToNode goToNode)
+        {
+            Console.WriteLine($"{indent}GoToNode: [label: {goToNode.Label}]");
+            Console.WriteLine($"{indent}  Condition:");
+            PrintAST(goToNode.Condition, indentLevel + 2);
+        }
+        else if (node is LabelNode labelNode)
+        {
+            Console.WriteLine($"{indent}LabelNode: {labelNode.LabelName}");
         }
         else
         {

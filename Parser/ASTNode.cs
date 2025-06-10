@@ -135,8 +135,21 @@ public class VariableNode : IASTNode
     }
     public object Execute(Dictionary<string, object> scope)
     {
-        if(!scope.ContainsKey(Name)) throw new Exception($"Variable no definida: {Name}");
+        if (!scope.ContainsKey(Name)) throw new Exception($"Variable no definida: {Name}");
         return scope[Name];
+    }
+}
+public class LabelNode : IASTNode
+{
+    public string LabelName { get; }
+    public LabelNode(string name)
+    {
+        LabelName = name;
+    }
+    public object Execute(Dictionary<string, object> scope)
+    {
+        //scope[$"Label_{LabelName}"] = /*direccion del nodo donde esta*/;
+        return null;
     }
 }
 public class FunctionCallNode : IASTNode

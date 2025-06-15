@@ -17,10 +17,8 @@ public class CodeEditor : TextEdit
         HighlightCurrentLine = true;   // Resaltar línea actual
         SyntaxHighlighting = true;     // Activar resaltado de sintaxis
         
-        // 1. Región para strings (entre comillas dobles)
         AddColorRegion("\"", "\"", _stringColor);
-        
-        // 2. Palabras clave (funciones)
+
         foreach (string function in _functions)
         {
             AddKeywordColor(function, _functionColor);

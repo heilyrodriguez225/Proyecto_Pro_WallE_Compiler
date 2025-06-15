@@ -4,34 +4,34 @@ using System.Collections.Generic;
 
 public class PixelCanvas : Control, ICanvas
 {
-    [Export] private int _gridSize = 100;   
-    [Export] private bool _showGrid = true;      
-    [Export] private Color _gridColor = new Color(0.8f, 0.8f, 0.8f, 0.3f);
+    [Export] private int _gridSize = 100;   // Tamaño de la cuadrícula
+    [Export] private bool _showGrid = true;  // Mostrar líneas de cuadrícula
+    [Export] private Color _gridColor = new Color(0.8f, 0.8f, 0.8f, 0.3f); // Color de la cuadrícula
+    
     private Dictionary<string, Color> _colorMap = new Dictionary<string, Color>()
     {
         {"Red", Colors.Red},
         {"Blue", Colors.Blue},
         {"Green", Colors.Green},
         {"Yellow", Colors.Yellow},
-        {"Orange", new Color(1, 0.65f, 0)},
-        {"Purple", new Color(0.5f, 0, 0.5f)},
+        {"Orange", new Color(1, 0.65f, 0)}, // Naranja personalizado
+        {"Purple", new Color(0.5f, 0, 0.5f)}, // Púrpura personalizado
         {"Black", Colors.Black},
         {"White", Colors.White},
         {"Transparent", Colors.Transparent}
     };
-    private Color[,] _pixels; 
-    private float _cellSize;     
-    public int Size => _gridSize;
+    
+    private Color[,] _pixels;  // Matriz de colores de píxeles
+    private float _cellSize;    // Tamaño de cada celda en píxeles
+    public int Size => _gridSize; // Implementación de ICanvas
     public override void _Ready()
     {
-        RectMinSize = new Vector2(400, 400);
-        
-        InitializePixels();
+        RectMinSize = new Vector2(400, 400); // Tamaño mínimo
+        InitializePixels(); // Inicializar matriz de píxeles
     }
-    private void InitializePixels()
+    public void InitializePixels()
     {
         _pixels = new Color[_gridSize, _gridSize];
-
         for (int y = 0; y < _gridSize; y++)
         {
             for (int x = 0; x < _gridSize; x++)
@@ -49,11 +49,16 @@ public class PixelCanvas : Control, ICanvas
     }
     public void SetPixel(int x, int y, string colorName)
     {
-        if (IsWithinBounds(x, y) && _colorMap.ContainsKey(colorName))
+        if (!IsWithinBounds(x, y)) return;
+        
+        if (!_colorMap.ContainsKey(colorName))
         {
-            _pixels[x, y] = _colorMap[colorName];
-            Update();
+            GD.PushError($"Color no válido: {colorName}");
+            return;
         }
+        
+        _pixels[x, y] = _colorMap[colorName];
+        Update(); // Actualizar visualización
     }
     public string GetPixel(int x, int y)
     {
@@ -63,36 +68,46 @@ public class PixelCanvas : Control, ICanvas
             if (_pixels[x, y] == pair.Value)
                 return pair.Key;
         }
-        return "White";
+        return "White"; 
     }
 
+    // Dibuja una línea con algoritmo Bresenham modificado
     public void DrawLine(int startX, int startY, int endX, int endY, string color, int brushSize)
     {
+        if (!_colorMap.ContainsKey(color))
+        {
+            GD.PushError($"Color no válido: {color}");
+            return;
+        }
+        Color colorValue = _colorMap[color];
+        // Ajustar tamaño impar del pincel
         if (brushSize % 2 == 0) brushSize--;
         if (brushSize < 1) brushSize = 1;
         int radius = (brushSize - 1) / 2;
+        // Calcular dirección y distancia
+        float dx = endX - startX;
+        float dy = endY - startY;
+        float distance = Mathf.Sqrt(dx * dx + dy * dy);
         
-        // Calcular la distancia total entre los puntos
-        float distance = (float)Math.Sqrt(Math.Pow(endX - startX, 2) + Math.Pow(endY - startY, 2));
-      
-        if (distance == 0)
+        // Caso especial: distancia cero
+        if (Mathf.IsZeroApprox(distance))
         {
-            DrawBrush(startX, startY, color, radius);
+            DrawBrush(startX, startY, colorValue, radius);
             return;
         }
-        float incrementX = (endX - startX) / distance;
-        float incrementY = (endY - startY) / distance;
-        
-        for (float step = 0; step <= distance; step += 0.5f) 
+        // Calcular incrementos
+        float incrementX = dx / distance;
+        float incrementY = dy / distance;
+        // Dibujar puntos a lo largo de la línea
+        for (float step = 0; step <= distance; step += 0.5f)
         {
             int currentX = (int)Math.Round(startX + incrementX * step);
             int currentY = (int)Math.Round(startY + incrementY * step);
-            DrawBrush(currentX, currentY, color, radius);
+            DrawBrush(currentX, currentY, colorValue, radius);
         }
     }
-    private void DrawBrush(int centerX, int centerY, string color, int radius)
+    private void DrawBrush(int centerX, int centerY, Color color, int radius)
     {
-        // Pintar todos los píxeles dentro del área del pincel
         for (int offsetX = -radius; offsetX <= radius; offsetX++)
         {
             for (int offsetY = -radius; offsetY <= radius; offsetY++)
@@ -102,60 +117,76 @@ public class PixelCanvas : Control, ICanvas
                 
                 if (IsWithinBounds(x, y))
                 {
-                    grid[x, y] = color;
+                    _pixels[x, y] = color;
                 }
             }
         }
     }
     public void DrawCircle(int centerX, int centerY, int radius, string color, int brushSize)
     {
-        for (int y = -radius; y <= radius; y++)
+        // Validar color
+        if (!_colorMap.ContainsKey(color)) return;
+        Color colorValue = _colorMap[color];
+        
+        for (int yOffset = -radius; yOffset <= radius; yOffset++)
         {
-            for (int x = -radius; x <= radius; x++)
+            for (int xOffset = -radius; xOffset <= radius; xOffset++)
             {
-                if (x * x + y * y <= radius * radius)
+                // Verificar si está dentro del círculo
+                if (xOffset * xOffset + yOffset * yOffset <= radius * radius)
                 {
-                    int px = centerX + x;
-                    int py = centerY + y;
-                    if (IsWithinBounds(px, py))
+                    int x = centerX + xOffset;
+                    int y = centerY + yOffset;
+                    
+                    if (IsWithinBounds(x, y))
                     {
-                        grid[px, py] = color;
+                        _pixels[x, y] = colorValue;
                     }
                 }
             }
         }
+        Update();
     }
     public void DrawRectangle(int centerX, int centerY, int width, int height, string color, int brushSize)
     {
+        // Validar color
+        if (!_colorMap.ContainsKey(color)) return;
+        Color colorValue = _colorMap[color];
+        
         int halfWidth = width / 2;
         int halfHeight = height / 2;
         
-        for (int y = -halfHeight; y <= halfHeight; y++)
+        for (int yOffset = -halfHeight; yOffset <= halfHeight; yOffset++)
         {
-            for (int x = -halfWidth; x <= halfWidth; x++)
+            for (int xOffset = -halfWidth; xOffset <= halfWidth; xOffset++)
             {
-                int px = centerX + x;
-                int py = centerY + y;
+                int x = centerX + xOffset;
+                int y = centerY + yOffset;
                 
-                if (IsWithinBounds(px, py))
+                if (IsWithinBounds(x, y))
                 {
-                    grid[px, py] = color;
+                    _pixels[x, y] = colorValue;
                 }
             }
         }
+        Update();
     }
     public int GetColorCount(string color, int x1, int y1, int x2, int y2)
     {
-        int count = 0;
+        if (!_colorMap.ContainsKey(color)) return 0;
+        Color targetColor = _colorMap[color];
+        
         int minX = Math.Min(x1, x2);
         int maxX = Math.Max(x1, x2);
         int minY = Math.Min(y1, y2);
         int maxY = Math.Max(y1, y2);
+        
+        int count = 0;
         for (int y = minY; y <= maxY; y++)
         {
             for (int x = minX; x <= maxX; x++)
             {
-                if (IsWithinBounds(x, y) && grid[x, y] == color)
+                if (IsWithinBounds(x, y) && _pixels[x, y] == targetColor)
                 {
                     count++;
                 }
@@ -165,39 +196,51 @@ public class PixelCanvas : Control, ICanvas
     }
     public bool IsColor(int targetX, int targetY, string color)
     {
-        return IsWithinBounds(targetX, targetY) && grid[targetX, targetY] == color;
+        if (!_colorMap.ContainsKey(color)) return false;
+        if (!IsWithinBounds(targetX, targetY)) return false;
+        
+        return _pixels[targetX, targetY] == _colorMap[color];
     }
     public void FloodFill(int x, int y, string color)
     {
         if (!IsWithinBounds(x, y)) return;
+        if (!_colorMap.ContainsKey(color)) return;
         
-        string targetColor = grid[x, y];
-        if (targetColor == color) return;
+        Color targetColorValue = _pixels[x, y];
+        Color newColorValue = _colorMap[color];
         
-        Stack<(int, int)> stack = new Stack<(int, int)>();
-        stack.Push((x, y));
+        if (targetColorValue == newColorValue) return;
+        
+        Stack<Vector2> stack = new Stack<Vector2>();
+        stack.Push(new Vector2(x, y));
         
         while (stack.Count > 0)
         {
-            var (cx, cy) = stack.Pop();
-            if (!IsWithinBounds(cx, cy) || grid[cx, cy] != targetColor) continue;
+            Vector2 pos = stack.Pop();
+            int px = (int)pos.x;
+            int py = (int)pos.y;
             
-            grid[cx, cy] = color;
+            if (!IsWithinBounds(px, py) || _pixels[px, py] != targetColorValue)
+                continue;
             
-            stack.Push((cx + 1, cy));
-            stack.Push((cx - 1, cy));
-            stack.Push((cx, cy + 1));
-            stack.Push((cx, cy - 1));
+            _pixels[px, py] = newColorValue;
+            
+            stack.Push(new Vector2(px + 1, py));
+            stack.Push(new Vector2(px - 1, py));
+            stack.Push(new Vector2(px, py + 1));
+            stack.Push(new Vector2(px, py - 1));
         }
+        Update();
     }
     private bool IsWithinBounds(int x, int y)
     {
-        return x >= 0 && x < Size && y >= 0 && y < Size;
+        return x >= 0 && x < _gridSize && y >= 0 && y < _gridSize;
     }
     public override void _Draw()
     {
         _cellSize = Mathf.Min(RectSize.x, RectSize.y) / _gridSize;
         
+        // Dibujar todos los píxeles
         for (int y = 0; y < _gridSize; y++)
         {
             for (int x = 0; x < _gridSize; x++)
@@ -222,6 +265,7 @@ public class PixelCanvas : Control, ICanvas
                 _gridColor
             );
         }
+        
         for (int y = 0; y <= _gridSize; y++)
         {
             float posY = y * _cellSize;

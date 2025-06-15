@@ -91,56 +91,50 @@ public class AssignmentNode : IASTNode
 }
 public class BinaryExpressionNode : IASTNode
 {
-	public IASTNode Left { get; }
-	public Token Operator { get; }
-	public IASTNode Right { get; }
-	public BinaryExpressionNode(IASTNode left, Token op, IASTNode right)
-	{
-		Left = left;
-		Operator = op;
-		Right = right;
-	}
-	public object Execute(Dictionary<string,object> scope)
-	{
-		dynamic left = Left.Execute(scope);
-		dynamic right = Right.Execute(scope);
-		switch (Operator.Lexeme)
-		{
-			case "+":
-				return left + right;
-			case "-":
-				return left - right;
-			case "*":
-				return left * right;
-			case "/":
-				if (right == 0) throw new Exception("División por cero");
-				return left / right;
-			case "%":
-				return left % right;
-			case "**":
-				if (left is int && right is int)
-					return (int)Math.Pow(left, right);
-				else return Math.Pow(left, right);
-			case "==":
-				return left == right;
-			case "!=":
-				return left != right;
-			case ">":
-				return left > right;
-			case "<":
-				return left < right;
-			case ">=":
-				return left >= right;
-			case "<=":
-				return left <= right;
-			case "&&":
-				return Convert.ToBoolean(left) && Convert.ToBoolean(right);
-			case "||":
-				return Convert.ToBoolean(left) || Convert.ToBoolean(right);
-			default:
-				throw new Exception($"Operador no soportado: {Operator.Lexeme}");
-		}
-	}
+    public IASTNode Left { get; }
+    public Token Operator { get; }
+    public IASTNode Right { get; }
+
+    public BinaryExpressionNode(IASTNode left, Token op, IASTNode right)
+    {
+        Left = left;
+        Operator = op;
+        Right = right;
+    }
+    public object Execute(Dictionary<string, object> scope)
+    {
+        object leftResult = Left.Execute(scope);
+        object rightResult = Right.Execute(scope);
+
+        if (Operator.Lexeme == "&&" || Operator.Lexeme == "||")
+        {
+            bool leftBool = Convert.ToBoolean(leftResult);
+            bool rightBool = Convert.ToBoolean(rightResult);
+            
+            if (Operator.Lexeme == "&&") return leftBool && rightBool;
+            if (Operator.Lexeme == "||") return leftBool || rightBool;
+        }
+        double leftNum = Convert.ToDouble(leftResult);
+        double rightNum = Convert.ToDouble(rightResult);
+
+        switch (Operator.Lexeme)
+        {
+            case "+": return leftNum + rightNum;
+            case "-": return leftNum - rightNum;
+            case "*": return leftNum * rightNum;
+            case "/":
+                if (rightNum == 0) throw new Exception("División por cero");
+                return leftNum / rightNum;
+            case "%": return (int)leftNum % (int)rightNum;
+            case "**": return Math.Pow(leftNum, rightNum);
+            case "==": return leftNum == rightNum;
+            case ">": return leftNum > rightNum;
+            case "<": return leftNum < rightNum;
+            case ">=": return leftNum >= rightNum;
+            case "<=": return leftNum <= rightNum;
+            default: throw new Exception($"Operador no soportado: {Operator.Lexeme}");
+        }
+    }
 }
 //Representa un valor literal (número, string, booleano).
 public class LiteralNode : IASTNode

@@ -12,7 +12,7 @@ public class Interpreter
         GlobalScope["CanvasSize"] = canvasSize;
         
         // 2. Inicializar estado de Wall-E
-        WallEState.PixelCanvas = new PixelCanvas(canvasSize);
+        WallEState.PixelCanvas = new PixelCanvas();
         WallEState.X = 0;
         WallEState.Y = 0;
         WallEState.CurrentColor = "White";

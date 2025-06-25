@@ -20,14 +20,13 @@ public class PixelCanvas : Control, ICanvas
         {"White", Colors.White},
         {"Transparent", Colors.Transparent}
     };
-    
     private Color[,] _pixels;  // Matriz de colores de píxeles
     private float _cellSize;    // Tamaño de cada celda en píxeles
     public int Size => _gridSize; // Implementación de ICanvas
     public override void _Ready()
     {
         RectMinSize = new Vector2(400, 400); // Tamaño mínimo
-        InitializePixels(); // Inicializar matriz de píxeles
+        InitializePixels();
     }
     public void InitializePixels()
     {
@@ -53,10 +52,9 @@ public class PixelCanvas : Control, ICanvas
         
         if (!_colorMap.ContainsKey(colorName))
         {
-            GD.PushError($"Color no válido: {colorName}");
+            Interpreter.Error.Add(new Exception ($"Color no válido: {colorName}"));
             return;
         }
-        
         _pixels[x, y] = _colorMap[colorName];
         Update(); // Actualizar visualización
     }
@@ -70,13 +68,11 @@ public class PixelCanvas : Control, ICanvas
         }
         return "White"; 
     }
-
-    // Dibuja una línea con algoritmo Bresenham modificado
     public void DrawLine(int startX, int startY, int endX, int endY, string color, int brushSize)
     {
         if (!_colorMap.ContainsKey(color))
         {
-            GD.PushError($"Color no válido: {color}");
+            Interpreter.Error.Add( new Exception ($"Color no válido: {color}"));
             return;
         }
         Color colorValue = _colorMap[color];
@@ -259,21 +255,12 @@ public class PixelCanvas : Control, ICanvas
         for (int x = 0; x <= _gridSize; x++)
         {
             float posX = x * _cellSize;
-            DrawLine(
-                new Vector2(posX, 0),
-                new Vector2(posX, _gridSize * _cellSize),
-                _gridColor
-            );
+            DrawLine(new Vector2(posX, 0), new Vector2(posX, _gridSize * _cellSize), _gridColor);
         }
-        
         for (int y = 0; y <= _gridSize; y++)
         {
             float posY = y * _cellSize;
-            DrawLine(
-                new Vector2(0, posY),
-                new Vector2(_gridSize * _cellSize, posY),
-                _gridColor
-            );
+            DrawLine(new Vector2(0, posY), new Vector2(_gridSize * _cellSize, posY), _gridColor);
         }
     }
 }

@@ -1,166 +1,134 @@
 using Godot;
 using System;
 
-public class MainController : Control
+public class MainController : Node2D
 {
     private CodeEditor _codeEditor;
+    private ErrorWindow _errorWindow;
     private PixelCanvas _pixelCanvas;
-    private ErrorLabel _errorLabel;
+    private LineEdit _canvasDimensionInput;
+    Scope scope = new Scope();
     private Interpreter _interpreter;
-    
-    private bool _shiftPressed = false;
-    private bool _altPressed = false;
-    
-    private string _defaultFilePath = "user://default.gw";
+    private string _defaultFilePath = "user://default.pw";
 
     public override void _Ready()
     {
         _codeEditor = GetNode<CodeEditor>("CodeEditor");
+        _errorWindow = GetNode<ErrorWindow>("ErrorWindow");
         _pixelCanvas = GetNode<PixelCanvas>("PixelCanvas");
-        _errorLabel = GetNode<ErrorLabel>("ErrorLabel");
-        InitializeCanvas(100);
+        _canvasDimensionInput = GetNode<LineEdit>("VBoxContainer/HBoxContainer/CanvasDimensionInput");
+        _interpreter = new Interpreter(100, scope);
     }
-    public void InitializeCanvas(int size)
+    private void _on_Run_pressed()
     {
-        _pixelCanvas.SetGridSize(size);
-        _pixelCanvas.InitializePixels();
-        
-        _interpreter = new Interpreter(size);
-        _interpreter.WallEState.PixelCanvas = _pixelCanvas;
-    }
-    public override void _Input(InputEvent @event)
-    {
-        if (@event is InputEventKey keyEvent)
-        {
-            if (keyEvent.Scancode == (int)KeyList.Shift)
-            {
-                _shiftPressed = keyEvent.Pressed;
-            }
-            else if (keyEvent.Scancode == (int)KeyList.Alt)
-            {
-                _altPressed = keyEvent.Pressed;
-            }
+        try
+		{
+            _errorWindow.ClearErrors();
+			string code = _codeEditor.Text;
+			
+			var lexer = new Lexer(code);
+			var parser = new Parser(lexer.tokens);
             
-            if (_shiftPressed && _altPressed && keyEvent.Pressed)
+			var program = parser.ParseProgram();
+
+            foreach (var function in Functions.FunctionMap)
             {
-                if (keyEvent.Scancode != (int)KeyList.Shift && keyEvent.Scancode != (int)KeyList.Alt)
-                {
-                    ExecuteCode();
-                    InitializeCanvas(100);
-                }
+                scope.SetFunction(function.Key, function.Value);
             }
-            
-            if (keyEvent.Pressed)
-            {
-                switch (keyEvent.Scancode)
-                {
-                    case (int)KeyList.F1:
-                        SaveFile();
-                        break;
-                    case (int)KeyList.F2:
-                        LoadFile();
-                        break;
-                    case (int)KeyList.F3:
-                        ResizeCanvas();
-                        break;
-                }
-            }
-        }
-    }
-    private void ExecuteCode()
+
+			_pixelCanvas.InitializePixels();
+            program.Execute(scope);
+			_pixelCanvas.Update();
+		}
+		catch (Exception ex)
+		{
+			Interpreter.Error.Add(ex);
+            _errorWindow.DisplayErrors();
+		}
+	}
+    private void _on_Save_pressed()
     {
         try
         {
-            _errorLabel.ClearError();
-            string code = _codeEditor.Text;
-            
-            var lexer = new Lexer(code);
-            var parser = new Parser(lexer.tokens);
-            var program = parser.ParseProgram();
-            
-            // Reiniciar píxeles antes de ejecutar
-            _pixelCanvas.InitializePixels();
-            
-            program.Execute(_interpreter.GlobalScope);
-            _pixelCanvas.Update();
-        }
-        catch (Exception ex)
-        {
-            _errorLabel.DisplayError($"Error: {ex.Message}");
-        }
-    }
-    private void SaveFile()
-    {
-        try
-        {
-            File file = new File();
-            Error err = file.Open(_defaultFilePath, File.ModeFlags.Write);
-            
-            if (err == Error.Ok)
+            _errorWindow.ClearErrors();
+            using (File file = new File())
             {
-                file.StoreString(_codeEditor.Text);
-                file.Close();
-                _errorLabel.DisplayError($"Archivo guardado: {_defaultFilePath}");
-            }
-            else
-            {
-                throw new Exception($"Error al guardar: {err}");
+                Error err = file.Open(_defaultFilePath, File.ModeFlags.Write);
+
+                if (err == Error.Ok)
+                {
+                    file.StoreString(_codeEditor.Text);
+                    Interpreter.Error.Add(new Exception($"Archivo guardado: {_defaultFilePath}"));
+                    _errorWindow.DisplayErrors();
+                }
+                else
+                {
+                    Interpreter.Error.Add(new Exception($"Error al guardar: {err}"));
+                    _errorWindow.DisplayErrors();
+                }
             }
         }
         catch (Exception ex)
         {
-            _errorLabel.DisplayError($"Error F1: {ex.Message}");
+            Interpreter.Error.Add(ex);
+            _errorWindow.DisplayErrors();
         }
     }
-    private void LoadFile()
+    private void _on_Load_pressed()
     {
         try
         {
+            _errorWindow.ClearErrors();
             File file = new File();
             if (!file.FileExists(_defaultFilePath))
             {
-                throw new Exception("Archivo no encontrado");
+                Interpreter.Error.Add(new Exception("Archivo no encontrado"));
             }
-            
             Error err = file.Open(_defaultFilePath, File.ModeFlags.Read);
             if (err == Error.Ok)
             {
                 _codeEditor.Text = file.GetAsText();
                 file.Close();
-                _errorLabel.DisplayError($"Archivo cargado: {_defaultFilePath}");
+                Interpreter.Error.Add(new Exception($"Archivo cargado: {_defaultFilePath}"));
+                _errorWindow.DisplayErrors();
             }
             else
             {
-                throw new Exception($"Error al cargar: {err}");
+                Interpreter.Error.Add(new Exception($"Error al cargar: {err}"));
+                _errorWindow.DisplayErrors();
             }
         }
         catch (Exception ex)
         {
-            _errorLabel.DisplayError($"Error F2: {ex.Message}");
+            Interpreter.Error.Add(ex);
+            _errorWindow.DisplayErrors();
         }
     }
-    private void ResizeCanvas()
+    private void _on_CanvasResize_pressed()
     {
         try
         {
-            int newSize = 100;
-            LineEdit sizeInput = GetNodeOrNull<LineEdit>("CanvasDimensionInput");
-            
-            if (sizeInput != null && int.TryParse(sizeInput.Text, out int parsedSize))
+            _errorWindow.ClearErrors();
+            const int newSize = 100;
+            _pixelCanvas.SetGridSize(newSize);
+            if (_canvasDimensionInput != null)
             {
-                newSize = parsedSize;
+                _canvasDimensionInput.Text = newSize.ToString();
             }
-            
-            if (newSize < 10) newSize = 10;
-            if (newSize > 500) newSize = 500;
-            
-            InitializeCanvas(newSize);
-            
-            _errorLabel.DisplayError($"Canvas redimensionado: {newSize}x{newSize}");
+            Interpreter.Error.Add(new Exception($"Canvas redimensionado a {newSize}x{newSize}"));
+            _errorWindow.DisplayErrors();
         }
         catch (Exception ex)
         {
-            _errorLabel.DisplayError($"Error F3: {ex.Message}");
+            Interpreter.Error.Add(ex);
+            _errorWindow.DisplayErrors();
+        }
+    }
+    private void _on_CanvasDimensionInput_text_changed()
+    {
+        if (int.TryParse(_canvasDimensionInput.Text, out int size) && size > 0)
+        {
+            _pixelCanvas.SetGridSize(newSize) = size;
         }
     }
 }

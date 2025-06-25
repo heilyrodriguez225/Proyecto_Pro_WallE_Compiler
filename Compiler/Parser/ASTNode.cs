@@ -4,48 +4,42 @@ using System.Collections.Generic;
 
 public interface IASTNode
 {
-	object Execute(Dictionary<string, object> scope);
+	object Execute(Scope scope);
 }
 public class ProgramNode : IASTNode
 {
-	public Dictionary<string, object> globalScope = new Dictionary<string, object>();
 	public List<IASTNode> Statements { get; } = new List<IASTNode>();
-	public object Execute(Dictionary<string, object> scope)
+	public object Execute(Scope scope)
 	{
+		var localScope = new Scope(scope);
 		for (int i = 0; i < Statements.Count; i++)
 		{
 			if (Statements[i] is LabelNode labelNode)
 			{
-				ScopeUtils.SetVariable(globalScope, $"Label_{labelNode.LabelName}", i);
+				scope.SetVariable($"Label_{ labelNode.LabelName}", i);
 			}
 		}
-		 var executionScope = new Dictionary<string, object>
-        {
-            ["parent"] = globalScope 
-        };
-
 		int currentIndex = 0;
 		while (currentIndex < Statements.Count)
 		{
 			var currentStatement = Statements[currentIndex];
+			object result = null;
 			if (!(currentStatement is LabelNode))
 			{
 				try
 				{
-					currentStatement.Execute(executionScope);
+					result = currentStatement.Execute(localScope);
 				}
 				catch (Exception ex)
 				{
-					throw new Exception($"Runtime error at line {currentIndex + 1}: {ex.Message}");
+					Interpreter.Error.Add(new Exception($"Runtime error at line {currentIndex + 1}: {ex.Message}"));
 				}
 			}
-			if (ScopeUtils.TryGetVariable(executionScope, "CurrentStatementIndex", out object nextIndex))
+			if (result != null && currentStatement is GoToNode)
 			{
-				currentIndex = (int)nextIndex;
-				ScopeUtils.RemoveVariable(executionScope, "CurrentStatementIndex");
+				currentIndex = (int)result;
 			}
-			else
-			{
+			else{
 				currentIndex++;
 			}
 		}
@@ -60,12 +54,15 @@ public class SpawnNode : IASTNode
 		{
 			X = x; Y = y;
 		}
-		public object Execute(Dictionary<string, object> scope)
+		public object Execute(Scope scope)
 		{
-			var canvasSize = (int)scope["CanvasSize"];
-			if (X < 0 || X >= canvasSize || Y < 0 || Y >= canvasSize) throw new Exception($"Posición inicial inválida: ({X}, {Y})");
-			scope["WallE_X"] = X;
-			scope["WallE_Y"] = Y;
+			var canvasSize = (int)scope.GetVariable("CanvasSize");
+			if (X < 0 || X >= canvasSize || Y < 0 || Y >= canvasSize) 
+			{
+				Interpreter.Error.Add(new Exception($"Posición inicial inválida: ({X}, {Y})"));
+			}
+			scope.SetVariable("WallE_X", X);
+			scope.SetVariable("WallE_Y", Y);
 			return null;
 		}
 	}
@@ -79,13 +76,9 @@ public class AssignmentNode : IASTNode
 		Variable = var;
 		Expression = expr;
 	}
-	public object Execute(Dictionary<string, object> scope)
+	public object Execute(Scope scope)
 	{
-		object value = Expression.Execute(scope);
-		if (!ScopeUtils.UpdateVariableInHierarchy(scope, Variable, value))
-        {
-			scope[Variable] = value;
-        }
+		scope.SetVariable(Variable, Expression.Execute(scope));
 		return null;
 	}
 }
@@ -101,7 +94,7 @@ public class BinaryExpressionNode : IASTNode
         Operator = op;
         Right = right;
     }
-    public object Execute(Dictionary<string, object> scope)
+    public object Execute(Scope scope)
     {
         object leftResult = Left.Execute(scope);
         object rightResult = Right.Execute(scope);
@@ -123,8 +116,12 @@ public class BinaryExpressionNode : IASTNode
             case "-": return leftNum - rightNum;
             case "*": return leftNum * rightNum;
             case "/":
-                if (rightNum == 0) throw new Exception("División por cero");
+                if (rightNum == 0)
+				{
+				Interpreter.Error.Add(new Exception("División por cero"));
                 return leftNum / rightNum;
+				} 
+				break;
             case "%": return (int)leftNum % (int)rightNum;
             case "**": return Math.Pow(leftNum, rightNum);
             case "==": return leftNum == rightNum;
@@ -132,8 +129,11 @@ public class BinaryExpressionNode : IASTNode
             case "<": return leftNum < rightNum;
             case ">=": return leftNum >= rightNum;
             case "<=": return leftNum <= rightNum;
-            default: throw new Exception($"Operador no soportado: {Operator.Lexeme}");
+            default:
+				 Interpreter.Error.Add(new Exception($"Operador no soportado: {Operator.Lexeme}"));
+				 return null;
         }
+		return null;
     }
 }
 //Representa un valor literal (número, string, booleano).
@@ -144,7 +144,7 @@ public class LiteralNode : IASTNode
 	{
 		Value = value;
 	}
-	public object Execute(Dictionary<string, object> scope)
+	public object Execute(Scope scope)
 	{
 		return Value;
 	}
@@ -157,10 +157,11 @@ public class VariableNode : IASTNode
 	{
 		Name = name;
 	}
-	public object Execute(Dictionary<string, object> scope)
+	public object Execute(Scope scope)
 	{
-		if (!scope.ContainsKey(Name)) throw new Exception($"Variable no definida: {Name}");
-		return scope[Name];
+		var res = scope.GetVariable(Name);
+		if(res == null) Interpreter.Error.Add(new Exception("Variable no asignada"));
+		return res;
 	}
 }
 public class LabelNode : IASTNode
@@ -170,9 +171,9 @@ public class LabelNode : IASTNode
 	{
 		LabelName = name;
 	}
-	public object Execute(Dictionary<string, object> scope)
+	public object Execute(Scope scope)
 	{
-		return null;
+		return LabelName;
 	}
 }
 public class FunctionCallNode : IASTNode
@@ -184,36 +185,15 @@ public class FunctionCallNode : IASTNode
 		FunctionName = name;
 		Arguments = args;
 	}
-	public object Execute(Dictionary<string, object> parentScope)
-    {
-        var functionScope = new Dictionary<string, object>
-        {
-            ["parent"] = parentScope, ["function"] = FunctionName,["args"] = Arguments.Count
-        };
-        var evaluatedArgs = new List<object>();
-        foreach (var arg in Arguments)
-        {
-            evaluatedArgs.Add(arg.Execute(parentScope));
-        }
-        for (int i = 0; i < evaluatedArgs.Count; i++)
+	public object Execute(Scope scope)
+	{
+		var func = scope.GetFunction(FunctionName);
+		List<object> args = new List<object>();
+		for (int i = 0; i < Arguments.Count; i++)
 		{
-            ScopeUtils.SetVariable(functionScope, $"arg{i}", evaluatedArgs[i]);
-        }
-        if (!Functions.FunctionMap.TryGetValue(FunctionName, out var function))
-        {
-            throw new Exception($"Función no definida: {FunctionName}");
-        }
-        try
-        {
-            return function(evaluatedArgs, functionScope);
-        }
-        finally
-        {
-            if (ScopeUtils.TryGetVariable(functionScope, "return", out object returnValue))
-            {
-                ScopeUtils.SetVariable(parentScope, $"{FunctionName}result", returnValue);
-            }
-        }
+			args.Add( Arguments[i].Execute(scope));
+		}
+		return func.DynamicInvoke(new object[] { args, scope });
     }
 }
 public class GoToNode : IASTNode
@@ -225,15 +205,18 @@ public class GoToNode : IASTNode
 		Label = label;
 		Condition = condition;
 	}
-	public object Execute(Dictionary<string, object> scope)
+	public object Execute(Scope scope)
 	{
 		bool condition = Convert.ToBoolean(Condition.Execute(scope));
 
 		if (condition)
 		{
-			if (!scope.ContainsKey($"Label_{Label}")) throw new Exception($"Etiqueta no existe: {Label}");
-			int targetIndex = (int)scope[$"Label_{Label}"];
-			scope["CurrentStatementIndex"] = targetIndex - 1;
+			if (scope.GetVariable($"Label_{Label}") == null)
+			{
+				Interpreter.Error.Add(new Exception($"Etiqueta no existe: {Label}"));
+			}
+			int targetIndex = (int)scope.GetVariable($"Label_{Label}");
+			return targetIndex;
 		}
 		return null;
 	}

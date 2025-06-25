@@ -8,16 +8,16 @@ public static class Functions
 	{
 		"Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent"
 	};
-	public static Dictionary<string, Func<List<object>, Dictionary<string, object>, object>> FunctionMap =
-		new Dictionary<string, Func<List<object>, Dictionary<string, object>, object>>
+	public static Dictionary<string, Func<List<object>, Scope, object>> FunctionMap =
+		new Dictionary<string, Func<List<object>,Scope, object>>
 	{
 		// Color(string color) 
 		{
 			"Color", (args, scope) =>
 			{
-				if (args.Count != 1) throw new ArgumentException("Color requiere 1 parámetro string");
+				if (args.Count != 1) Interpreter.Error.Add(new Exception("Color requiere 1 parámetro string"));
 				string color = Convert.ToString(args[0]);
-				if (!ValidColors.Contains(color)) throw new Exception($"Color no válido: {color}");
+				if (!ValidColors.Contains(color)) Interpreter.Error.Add(new Exception($"Color no válido: {color}"));
 				var state = GetWallEState(scope);
 				state.CurrentColor = color;
 				return null;
@@ -27,7 +27,7 @@ public static class Functions
 		{
 			"Size", (args, scope) =>
 			{
-				if (args.Count != 1) throw new ArgumentException("Size requiere 1 parámetro entero");
+				if (args.Count != 1) Interpreter.Error.Add(new Exception("Size requiere 1 parámetro entero"));
 				int size = Convert.ToInt32(args[0]); 
 				var state = GetWallEState(scope);
 				
@@ -43,7 +43,7 @@ public static class Functions
 		{
 			"DrawLine", (args, scope) =>
 			{
-				if (args.Count != 3) throw new ArgumentException("DrawLine requiere 3 parámetros enteros");
+				if (args.Count != 3) Interpreter.Error.Add(new Exception("DrawLine requiere 3 parámetros enteros"));
 				int dirX = Convert.ToInt32(args[0]);
 				int dirY = Convert.ToInt32(args[1]);
 				int distance = Convert.ToInt32(args[2]);
@@ -65,7 +65,7 @@ public static class Functions
 			"DrawCircle", (args, scope) =>
 			{
 				if (args.Count != 3 || !(args[0] is int) || !(args[1] is int) || !(args[2] is int))
-					throw new ArgumentException("DrawCircle requiere 3 parámetros enteros");
+					Interpreter.Error.Add(new Exception("DrawCircle requiere 3 parámetros enteros"));
 				int dirX = Convert.ToInt32(args[0]);
 				int dirY = Convert.ToInt32(args[1]);
 				int radius = Convert.ToInt32(args[2]);
@@ -85,7 +85,7 @@ public static class Functions
 			"DrawRectangle", (args, scope) =>
 			{
 				if (args.Count != 5 || !(args[0] is int) || !(args[1] is int) || !(args[2] is int) || !(args[3] is int) || !(args[4] is int))
-					throw new ArgumentException("DrawRectangle requiere 5 parámetros enteros");
+					Interpreter.Error.Add(new Exception("DrawRectangle requiere 5 parámetros enteros"));
 
 				int dirX = Convert.ToInt32(args[0]);
 				int dirY = Convert.ToInt32(args[1]);
@@ -106,7 +106,7 @@ public static class Functions
 				{
 			"Fill", (args, scope) =>
 			{
-				if (args.Count != 0) throw new ArgumentException("Fill no requiere parametros");
+				if (args.Count != 0) Interpreter.Error.Add(new Exception("Fill no requiere parametros"));
 				var state = GetWallEState(scope);
 				state.PixelCanvas.FloodFill(state.X, state.Y, state.CurrentColor);
 				return null;
@@ -116,7 +116,7 @@ public static class Functions
 			{
 			"GetActualX", (args, scope) =>
 			{
-				if (args.Count != 0) throw new ArgumentException("GetActualX no requiere parametros");
+				if (args.Count != 0) Interpreter.Error.Add(new Exception("GetActualX no requiere parametros"));
 				return GetWallEState(scope).X;
 			}
 		},
@@ -124,7 +124,7 @@ public static class Functions
 		{
 			"GetActualY", (args, scope) =>
 			{
-				if (args.Count != 0) throw new ArgumentException("GetActualY no requiere parametros");
+				if (args.Count != 0) Interpreter.Error.Add(new Exception("GetActualY no requiere parametros"));
 				return GetWallEState(scope).Y;
 			}
 		},
@@ -132,7 +132,7 @@ public static class Functions
 		{
 			"GetCanvasSize", (args, scope) =>
 			{
-				if (args.Count != 0) throw new ArgumentException("GetCanvasSize no requiere parámetros");
+				if (args.Count != 0) Interpreter.Error.Add(new Exception("GetCanvasSize no requiere parámetros"));
 				return GetWallEState(scope).PixelCanvas.Size;
 			}
 		},
@@ -141,7 +141,7 @@ public static class Functions
 			"GetColorCount", (args, scope) =>
 			{
 				if (args.Count != 5 || !(args[0] is string) || !(args[1] is int) || !(args[2] is int) || !(args[3] is int) || !(args[4] is int))
-					throw new ArgumentException("GetColorCount requiere 1 string y 4 enter");
+					Interpreter.Error.Add(new Exception("GetColorCount requiere 1 string y 4 enter"));
 				string color = (string)args[0];
 				int x1 = Convert.ToInt32(args[1]);
 				int y1 = Convert.ToInt32(args[2]);
@@ -155,8 +155,8 @@ public static class Functions
 			{
 			"IsBrushColor", (args, scope) =>
 			{
-				if (args.Count != 1) throw new ArgumentException("IsBrushColor requiere 1 parámetro string");
-				string color = Convert.ToString(args[0]);  // Usar nombre único
+				if (args.Count != 1) Interpreter.Error.Add(new Exception("IsBrushColor requiere 1 parámetro string"));
+				string color = Convert.ToString(args[0]);
 				var state = GetWallEState(scope);
 				if (state.CurrentColor == color) return 1;
 				else return 0;
@@ -166,8 +166,8 @@ public static class Functions
 		{
 			"IsBrushSize", (args, scope) =>
 			{
-				if (args.Count != 1) throw new ArgumentException("IsBrushSize requiere 1 parámetro entero");
-				int size = Convert.ToInt32(args[0]);  // Conversión explícita
+				if (args.Count != 1) Interpreter.Error.Add(new Exception("IsBrushSize requiere 1 parámetro entero"));
+				int size = Convert.ToInt32(args[0]); 
 				var state = GetWallEState(scope);
 				if (state.BrushSize == size) return 1;
 				else return 0;
@@ -177,7 +177,7 @@ public static class Functions
 		{
 			"IsCanvasColor", (args, scope) =>
 			{
-				if (args.Count != 3) throw new ArgumentException("IsCanvasColor requiere 3 parámetros");
+				if (args.Count != 3) Interpreter.Error.Add(new Exception("IsCanvasColor requiere 3 parámetros"));
 				string color = Convert.ToString(args[0]);
 				int vertical = Convert.ToInt32(args[1]);
 				int horizontal = Convert.ToInt32(args[2]);
@@ -190,10 +190,11 @@ public static class Functions
 			}
 		}
 	};
-	private static WallEState GetWallEState(Dictionary<string, object> scope)
+	private static WallEState GetWallEState(Scope scope)
 	{
-		if (!scope.TryGetValue("WallEState", out object stateObj) || !(stateObj is WallEState))
-			throw new InvalidOperationException("Estado de Wall-E no inicializado");
-		return (WallEState)stateObj;
+		var res = scope.GetVariable("WallEState");
+		if(!(res is WallEState))
+			Interpreter.Error.Add(new Exception("Estado de Wall-E no inicializado"));
+		return (WallEState)res;
 	}
 }

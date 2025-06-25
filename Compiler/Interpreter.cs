@@ -4,12 +4,13 @@ using System.Collections.Generic;
 
 public class Interpreter
 {
-    public Dictionary<string, object> GlobalScope { get; } = new Dictionary<string, object>();
+    public static List<Exception> Error = new List<Exception>();
     public WallEState WallEState { get; } = new WallEState();
-
-    public Interpreter(int canvasSize)
+    private Scope _scope;
+    public Interpreter(int canvasSize, Scope scope)
     {
-        GlobalScope["CanvasSize"] = canvasSize;
+        _scope = scope;
+        _scope.SetVariable("CanvasSize", canvasSize);
         
         // 2. Inicializar estado de Wall-E
         WallEState.PixelCanvas = new PixelCanvas();
@@ -18,10 +19,7 @@ public class Interpreter
         WallEState.CurrentColor = "White";
         WallEState.BrushSize = 1;
         
-        GlobalScope["WallEState"] = WallEState;
-        GlobalScope["CurrentStatementIndex"] = -1;
-        GlobalScope["LastError"] = null;
-    
+        _scope.SetVariable("WallEState",WallEState);
     }
 }
 public class WallEState

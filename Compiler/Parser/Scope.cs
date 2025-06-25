@@ -2,47 +2,52 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-public static class ScopeUtils
+public class Scope
 {
-	public static bool UpdateVariableInHierarchy(Dictionary<string, object> currentScope, string variableName, object newValue)
-	{
-		if (currentScope.ContainsKey(variableName))
-		{
-			currentScope[variableName] = newValue;
-			return true;
-		}
-		if (currentScope.TryGetValue("parent", out object parentObj) && parentObj is Dictionary<string, object> parentScope)
-		{
-			return UpdateVariableInHierarchy(parentScope, variableName, newValue);
-		}
+    private Dictionary<string,object> variable;
+    private Dictionary<string, Delegate> functions;
+    private Scope parent;
 
-		return false;
-	}
-	public static bool SetVariable(Dictionary<string, object> scope, string variableName, object value)
-	{
-		if (UpdateVariableInHierarchy(scope, variableName, value))
-		{
-			return true;
-		}
-		scope[variableName] = value;
-		return true;
-	}
-	public static bool TryGetVariable(Dictionary<string, object> currentScope, string variableName, out object value)
-	{
-		if (currentScope.TryGetValue(variableName, out value))
-		{
-			return true;
-		}
-		if (currentScope.TryGetValue("parent", out object parentObj) &&
-			parentObj is Dictionary<string, object> parentScope)
-		{
-			return TryGetVariable(parentScope, variableName, out value);
-		}
-		value = null;
-		return false;
-	}
-	public static bool RemoveVariable(Dictionary<string, object> scope, string variableName)
-	{
-		return scope.Remove(variableName);
-	}
+    public Scope(Scope parent = null)
+    {
+        variable = new Dictionary<string,object>(); 
+        functions = new Dictionary<string,Delegate>();
+        this.parent = parent;
+    }
+
+    public void SetVariable(string name, object value)
+    {
+        variable[name] = value;
+        if(parent != null && parent.GetVariable(name) != null)
+            parent.SetVariable(name,value);
+    }
+    public object GetVariable(string name)
+    {
+        if(!variable.ContainsKey(name))
+        {
+            if(parent != null)
+                return parent.GetVariable(name);
+            else
+                return null;
+        }
+        return variable[name];
+    }
+    public void SetFunction(string name, Delegate function)
+    {
+        functions[name] = function;
+        if(parent != null && parent.GetFunction(name) != null)
+        {
+            parent.SetFunction(name,function);
+        }
+    }
+    public Delegate GetFunction(string name)
+    {
+        if(!functions.ContainsKey(name))
+        {
+            if(parent != null)
+                return parent.GetFunction(name);
+            return null;
+        }
+        return functions[name];
+    }
 }

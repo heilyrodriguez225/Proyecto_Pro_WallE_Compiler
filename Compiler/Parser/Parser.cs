@@ -29,7 +29,7 @@ public class Parser
 				else program.Statements.Add(ParseLabel());
 			}
 			else if (Consume (Token.TokenType.NewLineToken, Tokens[0].Lexeme)) continue;
-			else throw new Exception("Error of parsing");
+			else Interpreter.Error.Add(new Exception("Error of parsing"));
 		}
 		return program;
 	}
@@ -50,8 +50,8 @@ public class Parser
 		}
 		else
 		{
+			Interpreter.Error.Add(new Exception($"Se esperaba {type} '{lexeme}', pero se encontró {Tokens[0]}"));
 			return false;
-			throw new Exception($"Se esperaba {type} '{lexeme}', pero se encontró {Tokens[0]}");
 		}
 	}
 	private void SavePrevious()
@@ -211,7 +211,8 @@ public class Parser
 			IASTNode right = ParseFactor();
 			return new BinaryExpressionNode(new LiteralNode(0), previous, right);
 		}
-		else throw new Exception($"Token inesperado: {Tokens[0]} en ParseFactor");
+		else Interpreter.Error.Add(new Exception($"Token inesperado: {Tokens[0]} en ParseFactor"));
+		return null;
 	}
 	private GoToNode ParseGoTo()
 	{

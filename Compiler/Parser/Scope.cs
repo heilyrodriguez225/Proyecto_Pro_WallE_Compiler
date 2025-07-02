@@ -14,7 +14,6 @@ public class Scope
         functions = new Dictionary<string,Delegate>();
         this.parent = parent;
     }
-
     public void SetVariable(string name, object value)
     {
         variable[name] = value;

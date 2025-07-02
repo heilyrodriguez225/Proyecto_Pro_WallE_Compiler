@@ -53,8 +53,9 @@ public static class Functions
 				int startY = state.Y;
 				int endX = startX + dirX * distance;
 				int endY = startY + dirY * distance;
+				Color[,] canvas = scope.GetVariable("Canvas") as Color[,];
 
-				state.PixelCanvas.DrawLine(startX, startY, endX, endY, state.CurrentColor, state.BrushSize);
+                state.PixelCanvas.DrawLine(startX, startY, endX, endY, state.CurrentColor, state.BrushSize,canvas);
 				state.X = endX;
 				state.Y = endY;
 				return null;
@@ -74,7 +75,9 @@ public static class Functions
 				int centerX = state.X + dirX * radius;
 				int centerY = state.Y + dirY * radius;
 
-				state.PixelCanvas.DrawCircle(centerX, centerY, radius, state.CurrentColor, state.BrushSize);
+                Color[,] canvas = scope.GetVariable("Canvas") as Color[,];
+
+                state.PixelCanvas.DrawCircle(centerX, centerY, radius, state.CurrentColor, state.BrushSize, canvas);
 				state.X = centerX;
 				state.Y = centerY;
 				return null;
@@ -96,7 +99,9 @@ public static class Functions
 
 				int centerX = state.X + dirX * distance;
 				int centerY = state.Y + dirY * distance;
-				state.PixelCanvas.DrawRectangle(centerX, centerY, width, height, state.CurrentColor, state.BrushSize);
+                Color[,] canvas = scope.GetVariable("Canvas") as Color[,];
+
+                state.PixelCanvas.DrawRectangle(centerX, centerY, width, height, state.CurrentColor, state.BrushSize, canvas);
 				state.X = centerX;
 				state.Y = centerY;
 				return null;
@@ -108,7 +113,8 @@ public static class Functions
 			{
 				if (args.Count != 0) Interpreter.Error.Add(new Exception("Fill no requiere parametros"));
 				var state = GetWallEState(scope);
-				state.PixelCanvas.FloodFill(state.X, state.Y, state.CurrentColor);
+                Color[,] canvas = scope.GetVariable("Canvas") as Color[,];
+                state.PixelCanvas.FloodFill(state.X, state.Y, state.CurrentColor, canvas);
 				return null;
 			}
 		},
@@ -133,7 +139,7 @@ public static class Functions
 			"GetCanvasSize", (args, scope) =>
 			{
 				if (args.Count != 0) Interpreter.Error.Add(new Exception("GetCanvasSize no requiere parámetros"));
-				return GetWallEState(scope).PixelCanvas.Size;
+				return ((Color[,])scope.GetVariable("Canvas")).GetLength(0);
 			}
 		},
 		//GetColorCount (string color, int x1, int y1, int x2, int y2)
@@ -148,7 +154,8 @@ public static class Functions
 				int x2 = Convert.ToInt32(args[3]);
 				int y2 = Convert.ToInt32(args[4]);
 				var state = GetWallEState(scope);
-				return state.PixelCanvas.GetColorCount(color, x1, y1, x2, y2);
+                Color[,] canvas = scope.GetVariable("Canvas") as Color[,];
+                return state.PixelCanvas.GetColorCount(color, x1, y1, x2, y2, canvas);
 			}
 		},
 		// IsBrushColor(string color) 
@@ -185,8 +192,8 @@ public static class Functions
 				var state = GetWallEState(scope);
 				int targetX = state.X + horizontal;
 				int targetY = state.Y + vertical;
-
-				return state.PixelCanvas.IsColor(targetX, targetY, color) ? 1 : 0;
+                Color[,] canvas = scope.GetVariable("Canvas") as Color[,];
+                return state.PixelCanvas.IsColor(targetX, targetY, color, canvas) ? 1 : 0;
 			}
 		}
 	};

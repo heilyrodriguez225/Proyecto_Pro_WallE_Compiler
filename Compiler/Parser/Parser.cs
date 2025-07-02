@@ -12,24 +12,28 @@ public class Parser
 		Tokens = tokens;
 		previous = null;
 	}
-	public ProgramNode ParseProgram()
+	public IASTNode ParseProgram()
 	{
 		var program = new ProgramNode();
 		program.Statements.Add(ParseSpawn()); // Spawn obligatorio
 		while (Tokens[0].Type != Token.TokenType.EOFToken)
 		{
-			if (Check (Token.TokenType.FunctionToken, Tokens[0].Lexeme))
+			if (Check(Token.TokenType.FunctionToken, Tokens[0].Lexeme))
 				program.Statements.Add(ParseInstruction());
-			else if (Check (Token.TokenType.GoToToken, Tokens[0].Lexeme))
+			else if (Check(Token.TokenType.GoToToken, Tokens[0].Lexeme))
 				program.Statements.Add(ParseGoTo());
-			else if (Check (Token.TokenType.IdentifierToken, Tokens[0].Lexeme))
+			else if (Check(Token.TokenType.IdentifierToken, Tokens[0].Lexeme))
 			{
 				if (Tokens[1].Lexeme == "<-")
 					program.Statements.Add(ParseAssignment());
 				else program.Statements.Add(ParseLabel());
 			}
-			else if (Consume (Token.TokenType.NewLineToken, Tokens[0].Lexeme)) continue;
-			else Interpreter.Error.Add(new Exception("Error of parsing"));
+			else if (Consume(Token.TokenType.NewLineToken, Tokens[0].Lexeme)) continue;
+			else
+			{
+				Interpreter.Error.Add(new Exception("Error of parsing"));
+				break;
+			}
 		}
 		return program;
 	}
@@ -50,7 +54,6 @@ public class Parser
 		}
 		else
 		{
-			Interpreter.Error.Add(new Exception($"Se esperaba {type} '{lexeme}', pero se encontró {Tokens[0]}"));
 			return false;
 		}
 	}
@@ -62,15 +65,13 @@ public class Parser
 		}
 	}
 	// Spawn(int x, int y)
-	private SpawnNode ParseSpawn()
+	private IASTNode ParseSpawn()
 	{
 		Consume(Token.TokenType.FunctionToken, "Spawn");
 		Consume(Token.TokenType.SymbolToken, "(");
-		int x = int.Parse(Tokens[0].Lexeme);
-		Consume(Token.TokenType.NumberToken, Tokens[0].Lexeme);
+		IASTNode x = ParseExpression();
 		Consume(Token.TokenType.SymbolToken, ",");
-		int y = int.Parse(Tokens[0].Lexeme);
-		Consume(Token.TokenType.NumberToken, Tokens[0].Lexeme);
+		IASTNode y = ParseExpression();
 		Consume(Token.TokenType.SymbolToken, ")");
 		return new SpawnNode(x, y);
 	}
@@ -78,7 +79,7 @@ public class Parser
 	private IASTNode ParseInstruction()
 	{
 		string functionName = Tokens[0].Lexeme;
-		Consume (Token.TokenType.FunctionToken, Tokens[0].Lexeme);
+		Consume(Token.TokenType.FunctionToken, Tokens[0].Lexeme);
 		Consume(Token.TokenType.SymbolToken, "(");
 		List<IASTNode> parameters = new List<IASTNode>();
 		while (!Check(Token.TokenType.SymbolToken, ")") && !Check(Token.TokenType.EOFToken, "$"))
@@ -97,8 +98,7 @@ public class Parser
 		Consume (Token.TokenType.IdentifierToken, Tokens[0].Lexeme);
 		Consume(Token.TokenType.SymbolToken, "<-");
 		IASTNode expression;
-		if (Tokens[0].Type == Token.TokenType.FunctionToken) expression = ParseInstruction();
-		else expression = ParseExpression();
+		expression = ParseExpression();
 		return new AssignmentNode(variableName, expression);
 	}
 	private IASTNode ParseLabel()
@@ -109,27 +109,23 @@ public class Parser
 	}
 	private IASTNode ParseExpression()
 	{
-		if (Tokens[1].Lexeme == "&&" || Tokens[1].Lexeme == "||" || Tokens[1].Lexeme == "==" || Tokens[1].Lexeme == ">=" ||
-		Tokens[1].Lexeme == "<=" || Tokens[1].Lexeme == "<" || Tokens[1].Lexeme == ">")
-			return ParseBoolExpression();
-		else
-			return ParseAlgebraicExpression();
+		return ParseBoolExpression();
 	}
 	private IASTNode ParseBoolExpression()
 	{
-		var left = ParseLogicalAnd();
-		while (Consume (Token.TokenType.OperatorToken, "||"))
+		var left = ParseLogicalOr();
+		while (Consume (Token.TokenType.OperatorToken, "&&"))
 		{
 			var op = previous;
-			var right = ParseLogicalAnd();
+			var right = ParseLogicalOr();
 			left = new BinaryExpressionNode(left, op, right);
 		}
 		return left;
 	}
-	private IASTNode ParseLogicalAnd()
+	private IASTNode ParseLogicalOr()
 	{
 		var left = ParseComparison();
-		while (Consume(Token.TokenType.OperatorToken, "&&"))
+		while (Consume(Token.TokenType.OperatorToken, "||"))
 		{
 			var op = previous;
 			var right = ParseComparison();
@@ -195,6 +191,10 @@ public class Parser
 			IASTNode expr = ParseExpression();
 			return expr;
 		}
+		else if (Tokens[0].Type == Token.TokenType.FunctionToken)
+		{
+			return ParseInstruction();
+		}
 		else if (Consume(Token.TokenType.IdentifierToken, Tokens[0].Lexeme))
 		{
 			string identifier = previous.Lexeme;
@@ -214,7 +214,7 @@ public class Parser
 		else Interpreter.Error.Add(new Exception($"Token inesperado: {Tokens[0]} en ParseFactor"));
 		return null;
 	}
-	private GoToNode ParseGoTo()
+	private IASTNode ParseGoTo()
 	{
 		Consume (Token.TokenType.GoToToken, Tokens[0].Lexeme);
 		Consume (Token.TokenType.SymbolToken, "[");

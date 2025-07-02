@@ -39,7 +39,8 @@ public class ProgramNode : IASTNode
 			{
 				currentIndex = (int)result;
 			}
-			else{
+			else
+			{
 				currentIndex++;
 			}
 		}
@@ -48,21 +49,28 @@ public class ProgramNode : IASTNode
 }
 public class SpawnNode : IASTNode
 	{
-		public int X { get; }
-		public int Y { get; }
-		public SpawnNode(int x, int y)
+		public IASTNode X { get; }
+		public IASTNode Y { get; }
+		public SpawnNode(IASTNode x, IASTNode y)
 		{
 			X = x; Y = y;
 		}
 		public object Execute(Scope scope)
 		{
 			var canvasSize = (int)scope.GetVariable("CanvasSize");
-			if (X < 0 || X >= canvasSize || Y < 0 || Y >= canvasSize) 
-			{
-				Interpreter.Error.Add(new Exception($"Posición inicial inválida: ({X}, {Y})"));
-			}
-			scope.SetVariable("WallE_X", X);
-			scope.SetVariable("WallE_Y", Y);
+			var x = Convert.ToInt32(X.Execute(scope));
+			var y = Convert.ToInt32(Y.Execute(scope));
+			if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize)
+		{
+			Interpreter.Error.Add(new Exception($"Posición inicial inválida: ({X}, {Y})"));
+		}
+			WallEState state = new WallEState();
+			state.X = x;
+			state.Y = y;
+			state.PixelCanvas = new PixelCanvas();
+			scope.SetVariable("WallEState",state);
+			scope.SetVariable("WallE_X", x);
+			scope.SetVariable("WallE_Y", y);
 			return null;
 		}
 	}
@@ -119,9 +127,9 @@ public class BinaryExpressionNode : IASTNode
                 if (rightNum == 0)
 				{
 				Interpreter.Error.Add(new Exception("División por cero"));
-                return leftNum / rightNum;
+					break;
 				} 
-				break;
+                return leftNum / rightNum;
             case "%": return (int)leftNum % (int)rightNum;
             case "**": return Math.Pow(leftNum, rightNum);
             case "==": return leftNum == rightNum;
@@ -208,7 +216,6 @@ public class GoToNode : IASTNode
 	public object Execute(Scope scope)
 	{
 		bool condition = Convert.ToBoolean(Condition.Execute(scope));
-
 		if (condition)
 		{
 			if (scope.GetVariable($"Label_{Label}") == null)

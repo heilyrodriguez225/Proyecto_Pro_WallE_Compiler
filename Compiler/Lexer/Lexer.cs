@@ -35,7 +35,7 @@ public class Lexer
 		Code = code + "$"; // Añadir EOF 
 		Tokenize();
 	}
-	public void Tokenize()
+	private void Tokenize()
 	{
 		int initialPosition = 0;
 		while (initialPosition < Code.Length)
